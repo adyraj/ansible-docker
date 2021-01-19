@@ -1,0 +1,38 @@
+---
+- hosts: 127.0.0.1
+  vars_prompt:
+    - name: con_name
+      prompt: "Enter Container Name"
+      private: no
+
+    - name: web_port
+      prompt: "Enter Port Number"
+      private: no
+
+  tasks:
+  - name: Launch docker container with adyraj/sshos image
+    docker_container:
+      name: "{{ con_name }}"
+      image: sshos:v1
+      interactive: yes
+      tty: yes
+      detach: yes
+      ports:
+        - "{{ web_port }}:80"
+      state: started
+  
+  - name: Get infos on container
+    docker_container_info:
+      name: "{{ con_name }}"
+    register: result
+
+  - name: Print IP Address
+    debug:
+            msg: "{{ result.container.NetworkSettings.IPAddress }}"
+
+  - name: Update Container IP in inventory
+    blockinfile:
+      path: inventory.txt
+      block: |
+              [docker]
+              {{ result.container.NetworkSettings.IPAddress }} ansible_user=root ansible_password=centos ansible_connection=ssh
